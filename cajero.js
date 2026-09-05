@@ -1,158 +1,401 @@
-// Estructura menu principal
+// --- VARIABLES PRINCIPALES ---
+let listaUsuarios = [];
+let usuarioActual = null;
+
+// Cargamos los usuarios que ya estaban guardados
+let datosGuardados = localStorage.getItem("usuarios_banco");
+
+if (datosGuardados) {
+    listaUsuarios = JSON.parse(datosGuardados);
+}
+
+// Función para guardar los usuarios
+function guardarEnLocalStorage() {
+    localStorage.setItem("usuarios_banco", JSON.stringify(listaUsuarios));
+}
+
+
+// Menú principal
 function menuPrincipal() {
-    let opcion;
-    
-    do {
+    let opcion = "";
+
+    while (opcion !== "3") {
         opcion = prompt(
-            "=== SISTEMA BANCARIO MI PLATA ===\n\n" +
+            "--- BANCO MI PLATA ---\n\n" +
             "1. Iniciar Sesión\n" +
             "2. Registrarse\n" +
             "3. Salir\n\n" +
-            "Seleccione una opción (1-3):"
+            "Ingrese una opción:"
         );
 
         switch (opcion) {
             case "1":
                 iniciarSesion();
-            break;
+                break;
 
             case "2":
                 registrarUsuario();
-            break;
+                break;
 
             case "3":
-                alert("Gracias por usar Mi Plata. ¡Hasta pronto!");
-            break;
+            case null:
+                alert("Gracias por usar nuestro banco. ¡Hasta luego!");
+                opcion = "3";
+                break;
 
             default:
-                alert("Opción no válida. Por favor, ingrese 1, 2 o 3.")
+                alert("Opción no válida, intente de nuevo.");
         }
-    } while (opcion !== "3");
-}
-
-// Obtiene la lista de usuarios guardada en localStorage (o un arreglo vacío si no hay nada)
-function obtenerUsuarios () {
-    let usuariosGuardados = localStorage.getItem("usuarios_banco");
-    if (usuariosGuardados){
-        return JSON.parse(usuariosGuardados) // Convierte el texto guardado a un Array  
-    } else {
-        return []; // Si está vacío, retorna un arreglo listo para llenar
     }
 }
 
-// Guarda la lista actualizada de usuarios en localStorage
-function guardarUsuariosBD (usuarios) {
-    localStorage.setItem("usuarios_banco", JSON.stringify(usuarios)); // Convierte el Array a texto
+// Generar número de cuenta aleatorio
+function generarNumeroCuenta() {
+    let numero = Math.floor(1000000000 + Math.random() * 9000000000);
+    return numero.toString();
 }
 
-// Se cra una función para registrar al usuario
-function registrarUsuario () {
-    alert("-- REGISTRO DE NUEVO CLIENTE ---");
-    
-    let identificacion = prompt("Ingrese su número de Identificación:");
-    let usuario = prompt("Ingrese su nombre de usuario:");
-    let correo = prompt("Ingrese su correo electrónico:");
-    let clave = prompt("Ingrese su clave:");
-    let repetirClave = prompt("Repita su clave:");
+// Opción 2 - Registrar usuario
+function registrarUsuario() {
+    alert("--- REGISTRO DE USUARIO ---");
 
-    // Se valida que ambas contraseñas coincidan para poder continuar
-    if (clave !== repetirClave){
-        alert("Error: las contraseñas no coinciden. Intentelo de nuevo.");
+    let id = prompt("Ingrese su número de documento:");
+    let nombre = prompt("Ingrese su nombre de usuario:");
+    let correo = prompt("Ingrese su correo:");
+
+    // Revisamos que los datos no estén vacíos
+    if (
+        id === "" ||
+        nombre === "" ||
+        correo === "" ||
+        id === null ||
+        nombre === null ||
+        correo === null
+    ) {
+        alert("Error: No puedes dejar campos vacíos.");
         return;
     }
 
-    // Se valida que todos los campos esten llenos
-    if (!identificacion || !usuario || !correo) {
-    alert("Error: Todos los campos son obligatorios.");
-    return;
-    }   
+    // Revisamos si el documento ya existe
+    for (let i = 0; i < listaUsuarios.length; i++) {
+        if (listaUsuarios[i].identificacion === id) {
+            alert("Error: Esta identificación ya está registrada.");
+            return;
+        }
+    }
 
-    // Verificar si la identificación ya existe
-    let listaUsuarios = obtenerUsuarios();
-    let existe = listaUsuarios.some(u => u.identificacion === identificacion);
+    // Pedimos la contraseña dos veces
+    let clave = prompt("Cree una contraseña:");
+    let clave2 = prompt("Repita la contraseña:");
 
-    if (existe) {
-        alert("Error: Ya existe un usuario registrado con esa identificación.");
+    if (clave !== clave2) {
+        alert("Error: Las contraseñas no coinciden.");
         return;
     }
 
-    let saldoInicial = parseFloat(prompt("Ingrese su saldo inicial:"));
+    // Pedimos el saldo inicial
+    let saldo = parseFloat(prompt("Ingrese el saldo inicial:"));
 
-    if (isNaN(saldoInicial) || saldoInicial <0) {
-        alert("Error: Ingrese un saldo inicial válido.");
+    // Revisamos que el saldo sea válido
+    if (isNaN(saldo) || saldo < 0) {
+        alert("Error: El saldo debe ser un número positivo.");
         return;
     }
 
-    // Objeto con la estructura completa requerida
+    let numCuenta = generarNumeroCuenta();
+
+    // Confirmación de datos ingresados
+    let confirmar = confirm(
+        "=== CONFIRMACIÓN DE DATOS ===\n\n" +
+        "Documento: " + id + "\n" +
+        "Usuario: " + nombre + "\n" +
+        "Correo: " + correo + "\n" +
+        "Saldo inicial: $" + saldo + "\n" +
+        "Número de cuenta asignado: " + numCuenta + "\n\n" +
+        "¿Desea confirmar el registro de esta cuenta?"
+    );
+
+    if (confirmar === false) {
+        alert("Registro cancelado.");
+        return;
+    }
+
+    // Creamos el nuevo usuario
     let nuevoUsuario = {
-        identificacion: identificacion,
-        usuario: usuario,
+        identificacion: id,
+        numeroCuenta: numCuenta,
+        usuario: nombre,
         correo: correo,
         clave: clave,
-        saldo: saldoInicial,
+        saldo: saldo,
         intentos: 0,
         bloqueado: false,
         movimientos: []
     };
 
+    // Agregamos el usuario a la lista
     listaUsuarios.push(nuevoUsuario);
-    guardarUsuariosBD(listaUsuarios);
 
-    alert(`¡Cuenta creada exitosamente para ${usuario}! 
-        Saldo inicial: $${saldoInicial}`);
+    // Guardamos los cambios
+    guardarEnLocalStorage();
+
+    alert(
+        "¡Usuario registrado con éxito!\n\n" +
+        "Su número de cuenta es: " + numCuenta
+    );
 }
 
-// Inicio de sesión
-function iniciarSesion () {
-    alert("--- INICIO DE SESIÓN ---");
+// --- INICIO DE SESIÓN ---
+function iniciarSesion() {
+    alert("--- INICIAR SESIÓN ---");
 
-    let usuarioIngresado = prompt("Ingrese su usuario");
-    let listaUsuarios = obtenerUsuarios();
+    let usuarioBuscar = prompt("Ingrese su nombre de usuario:");
+    let usuarioEncontrado = null;
 
-    // Buscamos al usuario en el arreglo cargado de localStorage
-    let usuarioEncontrado = listaUsuarios.find(u => u.usuario === usuarioIngresado);
-
-    // 1. Validar si el usuario existe
-    if (!usuarioEncontrado) {
-        alert("Error: El usuario no existe. Debe registrarse primero.");
-        return;
-    }
-
-    // 2. Validar si la cuenta ya está bloqueada
-    if (usuarioEncontrado.bloqueado) {
-        alert("Cuenta bloqueada por 24 horas, comunícate con tu banco");
-        return;
-    }
-
-    // 3. Ciclo de intentos para la contraseña (máximo 3 intentos)
-    let intentosMaximos = 3;
-
-    while (usuarioEncontrado.intentos < intentosMaximos) {
-        let claveIngresada = prompt(`Ingrese su clave (Intentos usados: ${usuarioEncontrado.intentos}/${intentosMaximos}):`);
-
-        if (claveIngresada == usuarioEncontrado.clave) {
-            alert(`¡Bienvenido de nuevo, ${usuarioEncontrado.usuario}!`)
-
-            // Reiniciamos los intentos fallidos al entrar con éxito
-            usuarioEncontrado.intentos = 0;
-            guardarUsuariosBD(listaUsuarios);
-
-            // Entramos al menú del cajero
-            menuTransacciones(usuarioEncontrado);
-            return;
-        } else {
-            usuarioEncontrado.intentos++;
-            alert(`Clave incorrecta. Intentos fallidos: ${usuarioEncontrado.intentos} de ${intentosMaximos}`);
+    // Buscamos el usuario
+    for (let i = 0; i < listaUsuarios.length; i++) {
+        if (listaUsuarios[i].usuario === usuarioBuscar) {
+            usuarioEncontrado = listaUsuarios[i];
+            break;
         }
     }
 
-    // 4. Si supera los 3 intentos fallidos, bloqueamos la cuenta
-    if (usuarioEncontrado.intentos >= intentosMaximos) {
+    // Si no existe el usuario
+    if (usuarioEncontrado === null) {
+        alert("El usuario no existe. Debe registrarse.");
+        return;
+    }
+
+    // Revisamos si la cuenta está bloqueada
+    if (usuarioEncontrado.bloqueado === true) {
+        alert("Cuenta bloqueada por 24 horas, comunícate con tu banco");
+        return;
+    }
+
+    let intentos = usuarioEncontrado.intentos;
+
+    // Dejamos máximo 3 intentos
+    while (intentos < 3) {
+        let claveIngresada = prompt(
+            "Ingrese su contraseña (Intento " +
+            (intentos + 1) +
+            " de 3):"
+        );
+
+        // Si la contraseña es correcta
+        if (claveIngresada === usuarioEncontrado.clave) {
+            alert("¡Bienvenido " + usuarioEncontrado.usuario + "!");
+
+            // Reiniciamos los intentos
+            usuarioEncontrado.intentos = 0;
+
+            guardarEnLocalStorage();
+
+            // Guardamos el usuario que inició sesión
+            usuarioActual = usuarioEncontrado;
+
+            // Abrimos el menú del cajero
+            menuCajero();
+
+            return;
+
+        } else {
+
+            // Sumamos un intento
+            intentos = intentos + 1;
+            usuarioEncontrado.intentos = intentos;
+
+            guardarEnLocalStorage();
+
+            alert("Contraseña incorrecta.");
+        }
+    }
+
+    // Si falla 3 veces se bloquea la cuenta
+    if (intentos >= 3) {
         usuarioEncontrado.bloqueado = true;
-        guardarUsuariosBD(listaUsuarios);
+
+        guardarEnLocalStorage();
+
         alert("Cuenta bloqueada por 24 horas, comunícate con tu banco");
     }
 }
 
+// --- MENÚ DEL CAJERO ---
+function menuCajero() {
+    let opcionCajero = "";
 
+    while (opcionCajero !== "5") {
+        opcionCajero = prompt(
+            "=== CAJERO AUTOMÁTICO ===\n" +
+            "Hola, " +
+            usuarioActual.usuario +
+            "\nN° Cuenta: " + usuarioActual.numeroCuenta + "\n\n" +
+            "1. Consultar Saldo\n" +
+            "2. Consignar Dinero\n" +
+            "3. Retirar Dinero\n" +
+            "4. Consultar Movimientos\n" +
+            "5. Salir (Cerrar Sesión)\n\n" +
+            "Seleccione una opción:"
+        );
+
+        switch (opcionCajero) {
+            case "1":
+                consultarSaldo();
+                break;
+
+            case "2":
+                consignar();
+                break;
+
+            case "3":
+                retirar();
+                break;
+
+            case "4":
+                verMovimientos();
+                break;
+
+            case "5":
+            case null:
+                alert("Cerrando sesión...");
+
+                usuarioActual = null;
+                opcionCajero = "5";
+                break;
+
+            default:
+                alert("Opción no válida.");
+        }
+    }
+}
+
+// --- CONSULTAR SALDO ---
+function consultarSaldo() {
+    alert(
+        "N° de Cuenta: " + usuarioActual.numeroCuenta + "\n" +
+        "Su saldo actual es: $" + usuarioActual.saldo
+    );
+}
+
+// --- CONSIGNAR DINERO ---
+function consignar() {
+    let valor = parseFloat(
+        prompt("Ingrese la cantidad a consignar:")
+    );
+
+    // Revisamos que el valor sea válido
+    if (isNaN(valor) || valor <= 0) {
+        alert("Monto no válido.");
+        return;
+    }
+
+    // Sumamos el dinero al saldo
+    usuarioActual.saldo = usuarioActual.saldo + valor;
+
+    // Sacamos la fecha del movimiento
+    let fecha = new Date().toLocaleString();
+
+    // Guardamos los datos del movimiento
+    let movimiento = {
+        fecha: fecha,
+        concepto: "Consignación",
+        valor: valor,
+        saldoNuevo: usuarioActual.saldo
+    };
+
+    // Agregamos el movimiento al historial
+    usuarioActual.movimientos.push(movimiento);
+
+    // Guardamos los cambios
+    guardarEnLocalStorage();
+
+    alert(
+        "Consignación realizada con éxito. Nuevo saldo: $" +
+        usuarioActual.saldo
+    );
+}
+
+// --- RETIRAR DINERO ---
+function retirar() {
+    let valor = parseFloat(
+        prompt("Ingrese la cantidad a retirar:")
+    );
+
+    // Revisamos que el valor sea válido
+    if (isNaN(valor) || valor <= 0) {
+        alert("Monto no válido.");
+        return;
+    }
+
+    // Revisamos que haya suficiente saldo
+    if (valor > usuarioActual.saldo) {
+        alert("Fondos insuficientes para este retiro.");
+        return;
+    }
+
+    // Restamos el dinero del saldo
+    usuarioActual.saldo = usuarioActual.saldo - valor;
+
+    // Sacamos la fecha del retiro
+    let fecha = new Date().toLocaleString();
+
+    // Guardamos los datos del movimiento
+    let movimiento = {
+        fecha: fecha,
+        concepto: "Retiro",
+        valor: valor,
+        saldoNuevo: usuarioActual.saldo
+    };
+
+    // Agregamos el movimiento al historial
+    usuarioActual.movimientos.push(movimiento);
+
+    // Guardamos los cambios
+    guardarEnLocalStorage();
+
+    alert(
+        "Retiro exitoso. Saldo restante: $" +
+        usuarioActual.saldo
+    );
+}
+
+// --- VER MOVIMIENTOS ---
+function verMovimientos() {
+
+    // Revisamos si tiene movimientos
+    if (usuarioActual.movimientos.length === 0) {
+        alert("No hay movimientos en esta cuenta.");
+        return;
+    }
+
+    let texto = "--- HISTORIAL DE MOVIMIENTOS ---\n\n";
+
+    // Recorremos los movimientos
+    for (let i = 0; i < usuarioActual.movimientos.length; i++) {
+
+        let m = usuarioActual.movimientos[i];
+
+        // Vamos armando el texto del historial
+        texto =
+            texto +
+            (i + 1) +
+            ". [" +
+            m.fecha +
+            "]\n" +
+            "   Tipo: " +
+            m.concepto +
+            "\n" +
+            "   Monto: $" +
+            m.valor +
+            "\n" +
+            "   Saldo: $" +
+            m.saldoNuevo +
+            "\n" +
+            "-----------------------------\n";
+    }
+
+    // Mostramos el historial
+    alert(texto);
+}
 menuPrincipal();
